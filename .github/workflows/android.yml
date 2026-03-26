@@ -5,11 +5,9 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-  release:
-    types: [created]
 
 jobs:
-  build:
+  build-debug:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,26 +18,24 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: 'gradle'
 
-      - name: Build (assembleDebug if gradlew exists; otherwise skip)
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download Gradle 8.5 and build (no wrapper)
         shell: bash
         run: |
           set -e
-          if [ -f ./gradlew ]; then
-            chmod +x ./gradlew
-            ./gradlew --version
-            ./gradlew assembleDebug
-            mkdir -p artifacts
-            cp app/build/outputs/apk/debug/*.apk artifacts/ || true
-          else
-            echo "gradlew not found; skipping build. Submit Android project with Gradle wrapper (8.5) to enable CI."
-            mkdir -p artifacts
-            echo "No gradlew; build skipped." > artifacts/README.txt
-          fi
+          curl -L -o gradle.zip https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle.zip
+          ./gradle-8.5/bin/gradle --version
+          # Build Debug APK
+          ./gradle-8.5/bin/gradle -Dorg.gradle.jvmargs="-Xmx2g" assembleDebug
+          mkdir -p artifacts
+          cp app/build/outputs/apk/debug/*.apk artifacts/ || echo "No APK yet"
 
-      - name: Upload Artifact (if any)
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android-apk-debug
           path: artifacts
