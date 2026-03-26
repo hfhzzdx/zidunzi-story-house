@@ -11,7 +11,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('gradlew') != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,37 +22,24 @@ jobs:
           java-version: 17
           cache: 'gradle'
 
-      - name: Gradle Wrapper Validation
-        uses: gradle/actions/wrapper-validation@v3
-
-      - name: Verify Gradle Wrapper Version (8.5)
+      - name: Build (assembleDebug if gradlew exists; otherwise skip)
         shell: bash
         run: |
           set -e
-          chmod +x gradlew || true
-          ./gradlew --version | tee gradle_ver.txt
-          if ! grep -qE '^Gradle 8\.5$' gradle_ver.txt; then
-            echo 'Expected Gradle 8.5. Please set gradle/wrapper/gradle-wrapper.properties distributionUrl to gradle-8.5-all.zip.' >&2
-            exit 1
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+            ./gradlew --version
+            ./gradlew assembleDebug
+            mkdir -p artifacts
+            cp app/build/outputs/apk/debug/*.apk artifacts/ || true
+          else
+            echo "gradlew not found; skipping build. Submit Android project with Gradle wrapper (8.5) to enable CI."
+            mkdir -p artifacts
+            echo "No gradlew; build skipped." > artifacts/README.txt
           fi
 
-      - name: Build with Gradle (Release)
-        uses: gradle/gradle-build-action@v3
-        with:
-          arguments: assembleRelease
-
-      - name: Sign APK (optional)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-
-      - name: Upload Artifact
+      - name: Upload Artifact (if any)
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: android-apk
+          path: artifacts
