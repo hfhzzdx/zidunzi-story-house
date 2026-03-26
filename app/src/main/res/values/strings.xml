@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">小墩子故事屋</string>
+    <string name="channel_playback">播放服务</string>
+    <string name="playback_ongoing">正在播放 TTS</string>
 </resources>

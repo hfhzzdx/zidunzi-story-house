@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <application android:label="小墩子故事屋">
     <activity android:name=".MainActivity">
       <intent-filter>
@@ -6,5 +8,9 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <service
+      android:name=".player.AudioService"
+      android:exported="false"
+      android:foregroundServiceType="mediaPlayback" />
   </application>
 </manifest>
